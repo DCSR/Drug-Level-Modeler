@@ -5,6 +5,10 @@ Modeler.py started as a stripped down version of Analysis.py.
 
 
 
+To do: fix sliders
+    try adding stuff (alpha and beta) to canvas: aCanvas.create_text(300, 20, text="graphLibTest")
+
+
 """
 
 from tkinter import *
@@ -12,23 +16,12 @@ from tkinter.ttk import Notebook
 from tkinter import filedialog
 from datetime import datetime
 import tkinter as tk
-# import TestArea as ta
-# import TextTab as tt
-# import ExcelStuff
-# import stream01
 import math
 import os
 import GraphLib
-# import Examples
 import numpy as np
-# import ListLib
 import sys
-
-# ExcelStuff requires pip3.13 install openpyxl
-
 from scipy.optimize import curve_fit
-# from scipy.stats.stats import pearsonr
-
 import matplotlib
 matplotlib.use('TkAgg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
@@ -122,40 +115,9 @@ class myGUI(object):
                              self.fileName5,self.fileName6,self.fileName7,self.fileName8,self.fileName9]
 
         # Graphs Tab
-        self.showBPVar = BooleanVar(value = True)
         self.max_x_scale = IntVar(value=360)
         self.max_y_scale = IntVar(value=500)
-
-        # Threshold stuff
-        self.printReportVar = BooleanVar(value = True)
-        self.pumpTimes = IntVar()                           # Use OMNI or M0 pumptimes
-        self.pumpTimes.set(0)                               # Default to OMNI pumptimes
-        self.logXVar = BooleanVar(value = True) 
-        self.logYVar = BooleanVar(value = True)
-        self.showPmaxLine = BooleanVar(value = True)
-        self.showOmaxLine = BooleanVar(value = True)
-        self.manualCurveFitVar = BooleanVar(value = False)
-        self.QzeroVar = DoubleVar()                         # Qzero
-        self.alphaVar = DoubleVar()                         # alpha
-        self.k_Var = DoubleVar(value=3.0)                   # k 
-        self.rangeBegin = IntVar()                          # First Point
-        self.rangeBegin.set(1)
-        self.rangeEnd = IntVar()                            # Last Point
-        self.rangeEnd.set(11)
-        self.responseCurveVar = BooleanVar(value = True)    # Show Response Curve
-        self.respMax = IntVar()
-        self.respMax.set(200)
-        self.average_TH_FilesVar = BooleanVar(value=False)  # Not associated with widget
-
-        # Text Tab
-        self.startTimeVar = IntVar()                        # Associated with startTimeScale, initialized to zero       
-        self.endTimeVar = IntVar()                          # Associated with endTimeScale, initialized to 360
-        self.drugConcStr = StringVar(value="5.0")
-        self.weightStr = StringVar(value="350")
-
-        # Test Area Tab
-        self.leverCount = IntVar()                          # Associated with L1Button & L2Button
-        self.leverCount.set(2)      
+        
 
         # ******************************************************************************
         # **************************         Root Frame            *********************
@@ -220,31 +182,116 @@ class myGUI(object):
         radiobutton10 = Radiobutton(fileSelectorFrame, textvariable = self.fileName9, variable = self.fileChoice, \
                                    value = 9, command =lambda: self.selectList()).grid(column=4, row=3,padx=padding)
 
+
+        # *************************************************************
+        # **************        Graph Tab     *************************
+        # *************************************************************
+
+        # ****** Create Frames *******
+        """
+        Screen is divided into a graphCanvasFrame on the right and the leftColumnFrame
+        The leftColumnFrame contains buttonFrame, drugFrame, sliderFrame and axesFrame
+        """
+          
         self.graphCanvasFrame = Frame(self.graphTab, borderwidth=2, relief="sunken")
         self.graphCanvasFrame.grid(column = 1, row = 0)
         self.graphCanvas = Canvas(self.graphCanvasFrame, width = canvas_width, height = canvas_height)
         self.graphCanvas.grid(row=0,column=0)
         self.graphCanvas.create_text(100,10,text = "Graph Canvas")
-
-        # *************************************************************
-        # **************        Graph Tab     *************************
-        # *************************************************************
         
-        self.columnFrame = Frame(self.graphTab, borderwidth=2, relief="sunken")
-        self.columnFrame.grid(column = 0, row = 0, columnspan= 1, sticky=NS)
+        self.leftColumnFrame = Frame(self.graphTab, borderwidth=2, relief="sunken")
+        self.leftColumnFrame.grid(column = 0, row = 0, sticky=N)
         
-        self.widgetFrame = Frame(self.columnFrame, borderwidth=2, relief="sunken")
-        self.widgetFrame.grid(column = 0, row = 0, sticky=N)
-        clearCanvasButton = Button(self.widgetFrame, text="Clear", command= lambda: \
-                            self.clearGraphTabCanvas()).grid(row=1,column=0,sticky=N)
+        self.buttonFrame = Frame(self.leftColumnFrame, borderwidth=2, relief="sunken")
+        self.buttonFrame.grid(column = 0, row = 0, sticky=N)
 
-        model_example_button = Button(self.widgetFrame, text="Draw Model", command= lambda: \
-                self.drawModel()).grid(column=0, row=2, sticky=N)
+        self.drugFrame = Frame(self.leftColumnFrame, borderwidth=2, relief="sunken")
+        self.drugFrame.grid(column = 0, row = 1)
+
+        self.sliderFrame = Frame(self.leftColumnFrame, borderwidth=2, relief="sunken")
+        self.sliderFrame.grid(column = 0, row = 3)
+
+        self.axesFrame = Frame(self.leftColumnFrame, borderwidth=2, relief="sunken")
+        self.axesFrame.grid(column = 0, row = 4)
+
+
+        # ********  Add widgets to specific Frames *******
+
+        # ******** buttonFrame ******************
         
-        test_button = Button(self.widgetFrame, text="Test", command= lambda: \
-                self.test()).grid(column=0, row=3, sticky=N)
+        clearCanvasButton = Button(self.buttonFrame, text="Clear", command= lambda: \
+                            self.clearGraphCanvas()).grid(row=1,column=0,sticky=W)
 
-        # **********  sliders *********************
+        drawModel_button = Button(self.buttonFrame, text="Draw Model", command= lambda: \
+                self.drawModel()).grid(column=0, row=2, sticky=W)
+        
+        test_button = Button(self.buttonFrame, text="Test", command= lambda: \
+                self.test()).grid(column=0, row=3, sticky=W)
+
+
+        # ********** drugFrame *********************
+        self.useDefaults = IntVar()  
+        self.useDefault_RadioButton = Radiobutton(self.drugFrame, text = "Drug Defaults", \
+                                variable = self.useDefaults, value = 1).grid(row = 0, column = 0, sticky = W)
+        self.useDefaults.set(1)
+        
+        self.drugList = IntVar()
+        setCocDefaults_RadioButton = Radiobutton(self.drugFrame, text="Cocaine", \
+                            variable = self.drugList, value = 1).grid(row=3, column=1, sticky=W)
+        setCocDefaults_RadioButton = Radiobutton(self.drugFrame, text="Heroin",  \
+                            variable = self.drugList, value = 2).grid(row=4, column=1, sticky=W)
+        setTestDefaults_RadioButton = Radiobutton(self.drugFrame, text="Test values",   \
+                            variable = self.drugList, value = 3).grid(row=5, column=1, sticky=W)
+        self.drugList.set(1)
+
+        
+        # ********** sliderFrame ********************
+
+        self.useSliders = Radiobutton(self.sliderFrame, text = "Use Sliders",
+                                variable = self.useDefaults, value = 0).grid(row = 0, column = 0, sticky = W)
+
+        self.dv1 = 0.112444
+        self.dv2 = 0.044379
+        self.k12 = 0.233
+        self.k21 = 0.212
+        self.kel = DoubleVar(value=0.294)
+
+
+        #dv1
+        dv1_Label = Label(self.sliderFrame, text = "dv1").grid(row=1,column=0,sticky=W)
+        self.scale_dv1 = Scale(self.sliderFrame, orient=HORIZONTAL, length=150, resolution = 0.000001, \
+                                 from_= 0.112000, to = 0.120000, variable = self.dv1)
+        self.scale_dv1.grid(row=1, column=1, columnspan = 3)
+        self.scale_dv1.set(0.112)
+
+        #dv2
+        dv2_Label = Label(self.sliderFrame, text = "dv2").grid(row=2,column=0,sticky=W)
+        self.scale_dv2 = Scale(self.sliderFrame, orient=HORIZONTAL, length=150, resolution = 0.001, \
+                                 from_= 0.01, to = 0.06, variable = self.dv2)
+        self.scale_dv2.grid(row=2,column=1, columnspan = 3)
+        self.scale_dv2.set(0.044)
+
+        #k12
+        k12_Label = Label(self.sliderFrame, text = "k12").grid(row=3,column=0,sticky=W)
+        self.scale_k12 = Scale(self.sliderFrame, orient=HORIZONTAL, length=150, resolution = 0.01, \
+                                 from_= 0.10, to = 0.40, variable = self.k12)
+        self.scale_k12.grid(row=3,column=1, columnspan = 3)
+        self.scale_k12.set(0.233)
+
+        #k21
+        k21_Label = Label(self.sliderFrame, text = "k21").grid(row=4,column=0,sticky=W)
+        self.scale_k21 = Scale(self.sliderFrame, orient=HORIZONTAL, length=150, resolution = 0.01, \
+                                 from_= 0.10, to = 0.4, variable = self.k21)
+        self.scale_k21.grid(row=4,column=1, columnspan = 3)
+        self.scale_k21.set(0.212)
+
+            
+        #kel
+        kel_Label = Label(self.sliderFrame, text = "kel").grid(row=5,column=0,sticky=W)
+        self.scale_kel = Scale(self.sliderFrame, orient=HORIZONTAL, length=150, resolution = 0.01, \
+                                 from_= 0.20, to = 0.4, variable = self.kel)
+        self.scale_kel.grid(row=5,column=1, columnspan = 3)
+        self.scale_kel.set(0.294)
 
         """
         variables
@@ -256,60 +303,12 @@ class myGUI(object):
         alpha = 0.641901               # per min
         beta = 0.097099                # per min
         """
-        self.dv1 = 0.112444
-        self.dv2 = 0.044379
-        self.k12 = 0.233
-        self.k21 = 0.212
-        self.kel = DoubleVar(value=0.294)   
-
-
-        #dv1
-        dv1_Label = Label(self.widgetFrame, text = "dv1").grid(row=4,column=0,sticky=W)
-        self.scale_dv1 = Scale(self.widgetFrame, orient=HORIZONTAL, length=150, resolution = 0.000001, \
-                                 from_= 0.112000, to = 0.120000, variable = self.dv1)
-        self.scale_dv1.grid(row=4, column=1, columnspan = 3)
-        self.scale_dv1.set(0.112)
-
-        #dv2
-        dv2_Label = Label(self.widgetFrame, text = "dv2").grid(row=6,column=0,sticky=W)
-        self.scale_dv2 = Scale(self.widgetFrame, orient=HORIZONTAL, length=150, resolution = 0.001, \
-                                 from_= 0.01, to = 0.06, variable = self.dv2)
-        self.scale_dv2.grid(row=6,column=1, columnspan = 3)
-        self.scale_dv2.set(0.044)
-
-        #k12
-        k12_Label = Label(self.widgetFrame, text = "k12").grid(row=8,column=0,sticky=W)
-        self.scale_k12 = Scale(self.widgetFrame, orient=HORIZONTAL, length=150, resolution = 0.01, \
-                                 from_= 0.10, to = 0.40, variable = self.k12)
-        self.scale_k12.grid(row=8,column=1, columnspan = 3)
-        self.scale_k12.set(0.233)
-
-        #k21
-        k21_Label = Label(self.widgetFrame, text = "k21").grid(row=10,column=0,sticky=W)
-        self.scale_k21 = Scale(self.widgetFrame, orient=HORIZONTAL, length=150, resolution = 0.01, \
-                                 from_= 0.10, to = 0.4, variable = self.k21)
-        self.scale_k21.grid(row=10,column=1, columnspan = 3)
-        self.scale_k21.set(0.212)
-
-            
-        #kel
-        kel_Label = Label(self.widgetFrame, text = "kel").grid(row=12,column=0,sticky=W)
-        self.scale_kel = Scale(self.widgetFrame, orient=HORIZONTAL, length=150, resolution = 0.01, \
-                                 from_= 0.20, to = 0.4, variable = self.kel)
-        self.scale_kel.grid(row=12,column=1, columnspan = 3)
-        self.scale_kel.set(0.294)
-
-
-        self.useDefaults = IntVar()                           # Use OMNI or M0 pumptimes
-        self.useDefault_RadioButton = Radiobutton(self.widgetFrame, text = "Defaults", \
-                                variable = self.useDefaults, value = 1).grid(row =14,column = 0, sticky = W)
-        self.useSliders = Radiobutton(self.widgetFrame, text = "Use Sliders", variable = self.useDefaults, value = 0).grid(row = 15,column = 0, sticky = W)
-        self.useDefaults.set(1)
-
-        
-
         """
-        
+
+
+        self.defaultsList = [self.fileName0,self.fileName1,self.fileName2,self.fileName3,self.fileName4,\
+                             self.fileName5,self.fileName6,self.fileName7,self.fileName8,self.fileName9]
+
 
         # ******* Y axis frame *********
         self.graph_YaxisRadioButtonFrame = Frame(self.columnFrame, borderwidth=2, relief="sunken")
@@ -421,13 +420,13 @@ class myGUI(object):
 
     # ************** End Record Class *********************************
 
-
     def drawXaxis(aCanvas, x_zero, y_zero, x_pixel_width, max_x_scale, x_divisions, color = "black"):
         """
         Draws an X (horizontal) axis using the following parameters:
-        aCanvas, x_zero, y_zero, x_pixel_width, max_x_scale, x_divisions
+        aCanvas:  Here the main canvas is self.graphCanvas, but a different canvas might be added,
+                  for example, in a new Tab.
+        x_zero, y_zero, x_pixel_width, max_x_scale, x_divisions
         """
-        # aCanvas.create_text(300, 20, text="graphLibTest")
         aCanvas.create_line(x_zero, y_zero, x_zero + x_pixel_width, y_zero, fill=color)
         for divisions in range(x_divisions + 1):          
             x = x_zero + (divisions * (x_pixel_width // x_divisions))
