@@ -1,7 +1,7 @@
 
 """
 Dec 1, 2024
-Modeler.py started as a stripped down version of Analysis.py.
+Modeler.py started as a stripped down latest version of Analysis.py.
 
         Using the Pan equation for alpha as follows
         alpha := 0.5*((k12+k21+kel)+SQRT((k12+k21+kel)*(k12+k21+kel)-(4*k21*kel)));
@@ -22,26 +22,16 @@ Modeler.py started as a stripped down version of Analysis.py.
 
 Done: mostly cleaned up. Draw buttons seem functional and useful.
 
+     Standardize dataRecord with one four second injection at 110000 as per Nicks file - DONE 
+
+     Add textbox and write to it.
+
 To Do:
 
-Standardize dataRecord with one four second injection at 110000 as per Nicks file
-
-1 min 60,000
-2 min 120,000
-
-5 min 300,000
-30 min 1,800,000
+    Should it include Drug ("cocaine"), drug concentration etc - To do
 
 
-
-   Should it include Drug ("cocaine"), drug concentration etc.
-
-
-
-
-   Prototype Draw using Pan et al. before organizing buttons etc
-
-    try adding stuff (alpha and beta) to canvas: aCanvas.create_text(300, 20, text="graphLibTest")
+    Try adding stuff (alpha and beta) to canvas: aCanvas.create_text(300, 20, text="graphLibTest")
 
 
 Conclusions: dv1 seems to be 100% irrelevant in these calculations!
@@ -188,9 +178,16 @@ class myGUI(object):
         myNotebook = Notebook(noteBookFrame)
         self.graphTab = Frame(myNotebook)
         myNotebook.add(self.graphTab,text = "Graphs")
-        self.spareTab = Frame(myNotebook)
-        myNotebook.add(self.spareTab,text = "Spare Tab") 
+        self.textTab = Frame(myNotebook)
+        myNotebook.add(self.textTab,text = "Text") 
         myNotebook.grid(row=0,column=0)
+
+        # *********  Text Tab ********
+        self.textButtonFrame = Frame(self.textTab, borderwidth=1)
+        self.textButtonFrame.grid(column = 0, row = 0, sticky=N)
+        self.textBox = Text(self.textTab, width=100, height=47)
+        self.textBox.grid(column = 1, row = 0, rowspan = 2)
+        
 
         # *************  Header Row ******************      
         openFilesButton = Button(headerFrame, text="Open Files", command= lambda: \
@@ -362,6 +359,8 @@ class myGUI(object):
         """
 
         self.updateParamLabels()
+        self.defineTwoTestFiles()
+        
         
     # ***************   End of __init__(self)  *************************
 
@@ -370,40 +369,17 @@ class myGUI(object):
     class DataRecord:
         def __init__(self, datalist, fileName):
             self.fileName = fileName
-            self.datalist = datalist
-            self.numberOfL1Responses = 0
-            self.numberOfL2Responses = 0
+            self.datalist = datalist      # List of pumptime pairs
             self.numberOfInfusions = 0
-            self.totalPumpDuration = 0        
+            self.totalPumpDuration = 0
+            self.drug = "Cocaine"
             self.drugConc = 0.0
             self.pumpSpeed = 0.0
-            self.averagePumpTime = 0.0
-            self.TH_PumpTimes = []
-            self.priceList = []
-            self.consumptionList = []
-            self.responseList = []
             self.deltaList = []
-            self.notes = "test"
-            self.iniLine = ""
 
         def __str__(self):
             """
                 Returns a string of values inside object that is used when the print command is called
-            """
-            consumptionStr = ""
-            for i in range(0,len(self.consumptionList)):
-                consumptionStr = consumptionStr + "{:.3f}, ".format(self.consumptionList[i])
-
-            priceStr = ""
-            for i in range(0,len(self.priceList)):
-                priceStr = priceStr + "{:.2f}, ".format(self.priceList[i])
-
-            responseStr = ""
-            for i in range(0,len(self.responseList)):
-                responseStr = responseStr + "{}, ".format(self.responseList[i])
-                    
-            s = "Filename: "+self.fileName+ \
-            "\nNotes: "+self.notes+ \
             "\nLever 1 Responses: "+str(self.numberOfL1Responses)+ \
             "\nLever 2 Responses: "+str(self.numberOfL2Responses)+ \
             "\nInfusions: "+str(self.numberOfInfusions)+ \
@@ -411,18 +387,18 @@ class myGUI(object):
             "\nAverage Pump Time (mSec): "+str(round(self.averagePumpTime,4))+ \
             "\nPump Speed (ml/sec): "+str(self.pumpSpeed)+" ml/Sec\n"
             
-            """
             "\nPumpTimes = "+str(self.TH_PumpTimes) + \
             "\nPriceList = " + priceStr + \
             "\nConsumptionList = " + consumptionStr + \
             "\nResponseList = " + responseStr +"\n"
             "\nDelta List: "+str(self.deltaList)+
             """
-            #"\n============================\n"
-            
+                    
+            s = self.fileName+": drug: "+ self.drug+" with pump speed = "+str(self.pumpSpeed)         
             return s
 
         def extractStatsFromList(self):
+            """
             self.numberOfL1Responses = 0
             self.numberOfL2Responses = 0
             self.numberOfInfusions = 0
@@ -451,12 +427,12 @@ class myGUI(object):
                         self.totalPumpDuration = self.totalPumpDuration + duration
                 if self.numberOfInfusions > 0:
                     self.averagePumpTime = round(self.totalPumpDuration / self.numberOfInfusions,2)
+            """
 
     # ************** End Record Class *********************************
 
 
-
-    
+   
     """
 
     def drawXaxis(aCanvas, x_zero, y_zero, x_pixel_width, max_x_scale, x_divisions, color = "black"):
@@ -511,7 +487,34 @@ class myGUI(object):
             self.scale_dv2.set(self.dv2)
             self.scale_k12.set(self.k12)
             self.scale_k21.set(self.k21)
-            self.scale_kel.set(self.kel)    
+            self.scale_kel.set(self.kel)
+
+    def defineTwoTestFiles(self):
+        # Ten DataRecords have previously been instantiate as empty
+        
+        # testRecord1 has one 4 sec infusion
+        name = "TestRecord1"
+        self.recordList[0].datalist = [(110000,114000)]
+        self.recordList[0].fileName = name      
+        self.recordList[0].pumpSpeed = 0.025   # Wake default 0.1 mls/4 sec = 0.025 / sec
+        self.recordList[0].drugConc = 4.0
+        #testRecord1.drug = "cocaine"
+        self.fileNameList[0].set(name)
+        
+        print(self.recordList[0])
+        self.textBox.insert(tk.END, "TestRecord1"+"\n")
+
+        name = "TestRecord2"
+        self.recordList[1].datalist = [(110000,114000), (600000,604000), (1800000, 1804000)]
+        self.recordList[1].fileName = name      
+        self.recordList[1].pumpSpeed = 0.025   # Wake default 0.1 mls/4 sec = 0.025 / sec
+        self.recordList[1].drugConc = 4.0
+        #testRecord1.drug = "cocaine"
+        self.fileNameList[1].set(name)
+
+        self.textBox.insert(tk.END, "TestRecord2"+"\n")
+        print(self.recordList[1])
+        
 
     def eventRecord(self, aCanvas, x_zero, y_zero, x_pixel_width, max_x_scale, dataList, charList, aLabel, t_zero = 0):
         """
@@ -663,31 +666,19 @@ class myGUI(object):
         # model.calculateDrugConc defaults to bodyweight 0.330 
 
         """        
-        # testRecord1  4 sec infusion
-        testRecord1 = self.DataRecord([],"TestRecord1")
 
-        
-        # testRecord1.datalist = [[600000, 'P'],[605000, 'p'],[1200000, 'P'],[1205000,'p'],[12000000, 'P'],[12005000,'p']]
+        aRecord = self.recordList[self.fileChoice.get()]
+        print(aRecord.datalist)
+        print(aRecord.drugConc)
+        print(aRecord.pumpSpeed)
+        print(aRecord.fileName)
 
-        testRecord1.datalist = [(110000,114000)]
-        testRecord1.pumpSpeed = 0.025   # Wake default 0.1 mls/4 sec = 0.025 / sec
-        testRecord1.drugConc = 4.0
-        testRecord1.extractStatsFromList()
-        duration = testRecord1.totalPumpDuration
-        dose = (testRecord1.totalPumpDuration * testRecord1.drugConc * (testRecord1.pumpSpeed/1000)/0.330)
-        print("testRecord1 Duration = {0}; Total Dose = {1:2.1f}".format(duration,dose))
 
         # ************** later, need to pass aRecord -> drawModel(self,aRecord) *******
         # but for now it just uses only the parameters in testRecord1 above
         # *****************************************************************************
 
-        aCanvas = self.graphCanvas
-        aRecord = testRecord1
-        print(aRecord.datalist)
-        print(aRecord.drugConc)
-        print(aRecord.pumpSpeed)
-        
-        
+        aCanvas = self.graphCanvas        
         x_zero = 75
         y_zero = 350
         x_pixel_width = 500 #700
@@ -710,6 +701,8 @@ class myGUI(object):
         drugConcXYList = self.calculateDrugConc(aRecord.datalist,aRecord.drugConc,aRecord.pumpSpeed,resolution)
 
         # print(drugConcXYList)
+        # self.textBox.insert(tk.END, drugConcXYList)
+        
         x = x_zero
         y = y_zero
         totalConc = 0
@@ -729,22 +722,6 @@ class myGUI(object):
             x = newX
             y = newY
         aCanvas.create_text(300, 400, fill = "blue", text = aRecord.fileName)
-
-        """
-        # ************
-        
-        dose = 2.8*aRecord.drugConc * aRecord.pumpSpeed
-        tempStr = "Duration (2.8 sec) * Pump Speed ("+str(aRecord.pumpSpeed)+" ml/sec) * drugConc ("+str(aRecord.drugConc)+" mg/ml) = Unit Dose "+ str(round(dose,3))+" mg/inj"
-        aCanvas.create_text(300, 450, fill = "blue", text = tempStr)
-        averageConc = round((totalConc/totalRecords),3)
-        # draw average line
-        X1 = x_zero + (startAverageTime * x_scaler) // 1
-        Y  = y_zero-((averageConc) * y_scaler) // 1
-        X2 = x_zero + (endAverageTime * x_scaler) // 1
-        # aCanvas.create_line(X1, Y, X2, Y, fill= "red")
-        # tempStr = "Average Conc (10-180 min): "+str(averageConc)
-        # aCanvas.create_text(500, Y, fill = "red", text = tempStr)
-        """
 
 
     def drawCocDefault(self):
