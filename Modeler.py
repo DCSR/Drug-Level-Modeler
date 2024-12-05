@@ -3,17 +3,43 @@
 Dec 1, 2024
 Modeler.py started as a stripped down version of Analysis.py.
 
+        Using the Pan equation for alpha as follows
+        alpha := 0.5*((k12+k21+kel)+SQRT((k12+k21+kel)*(k12+k21+kel)-(4*k21*kel)));
+        beta  := 0.5*((k12+k21+kel)-SQRT((k12+k21+kel)*(k12+k21+kel)-(4*k21*kel)));
+        results in the alpha used by Nicola and Deadwyler
+        alpha : real = 0.641901;   // per min
+        beta : real = 0.097099;    // per min
+    
+    dv1 = 0.112444;   # blood
+    dv2 = 0.044379;   # brain
+    k12 = 0.233;      # rate constant for transfer from blood to brain      0.2 max 
+    k21 = 0.212;      # rate contant for transfer from brain to blood
+    kel = 0.294       # rate constant for elimination from blood by metabolism and excretion          
+    alpha = 0.641901               # per min
+    beta = 0.097099                # per min
+
+
 
 
 To do:
     Consolidate drawModel
     change CocConc to drugConcentration etc.
 
-    Look at NIDA heroin numbers
+1. For now, use a minimum TestRecord1.
+   Should it include Drug ("cocaine"), drug concentration etc.
+
+   Draw using Pan et al. ("blue")
+   Draw using TestParams1 ("Green"
+   Draw using TestParams2 ("Red")
+   Draw using Sliders     ("Yellow")
+
+   Prototype Draw using Pan et al. before organizing buttons etc
 
     try adding stuff (alpha and beta) to canvas: aCanvas.create_text(300, 20, text="graphLibTest")
 
-    
+
+Conclusions: dv1 seems to be 100% irrelevant in these calculations!
+I don't understand what parameter affects rise time (onset duration) - is it assume
 
 
 """
@@ -223,19 +249,16 @@ class myGUI(object):
         self.leftColumnFrame.grid(row = 0, column = 0, sticky=N)
 
         self.parameterFrame = Frame(self.leftColumnFrame, borderwidth=2, relief="sunken")
-        self.parameterFrame.grid(row = 0, column = 0, sticky=W)
+        self.parameterFrame.grid(row = 0, column = 0, sticky=EW)
         
         self.buttonFrame = Frame(self.leftColumnFrame, borderwidth=2, relief="sunken")
-        self.buttonFrame.grid(row = 0, column = 1, sticky=W)
-
-        self.drugFrame = Frame(self.leftColumnFrame, borderwidth=2, relief="sunken")
-        self.drugFrame.grid(row = 1, column = 0, sticky=W)
+        self.buttonFrame.grid(row = 1, column = 0, sticky=EW)
 
         self.sliderFrame = Frame(self.leftColumnFrame, borderwidth=2, relief="sunken")
-        self.sliderFrame.grid(row = 3, column = 0, sticky=W)
+        self.sliderFrame.grid(row = 2, column = 0, sticky=W)
 
         self.axesFrame = Frame(self.leftColumnFrame, borderwidth=2, relief="sunken")
-        self.axesFrame.grid(column = 0, row = 5, sticky=W)
+        self.axesFrame.grid(row = 3, column = 0, sticky=W)
 
 
         # ********  Add widgets to specific Frames *******
@@ -246,44 +269,28 @@ class myGUI(object):
                             #self.clearGraphCanvas()).grid(row=1,column=0,sticky=W)
                             self.clearGraphTabCanvas()).grid(row=1,column=0,sticky=W)
 
-        drawModel_button = Button(self.buttonFrame, text="Draw Model", command= lambda: \
-                self.drawModel()).grid(column=0, row=2, sticky=W)
-        
-        test_button = Button(self.buttonFrame, text="Test", command= lambda: \
-                self.test()).grid(column=0, row=3, sticky=W)
+        drawModel_button = Button(self.buttonFrame, text="drawCocDefault()", command= lambda: \
+                self.drawCocDefault()).grid(column=0, row=2, sticky=W)
 
+        drawModel_button = Button(self.buttonFrame, text="drawTestParams1()", command= lambda: \
+                self.drawTestParams1()).grid(column=0, row=3, sticky=W)
 
-        # ********** drugFrame *********************
-        self.useDefaults = IntVar()  
-        self.useDefault_RadioButton = Radiobutton(self.drugFrame, text = "Drug Defaults", \
-                                variable = self.useDefaults, value = 1).grid(row = 0, column = 0, sticky = W)
-        self.useDefaults.set(1)
-        
-        self.drugList = IntVar()
-        setCocDefaults_RadioButton = Radiobutton(self.drugFrame, text="Cocaine", \
-                            variable = self.drugList, value = 1, command= lambda: \
-                            self.setCocaineDefaults()).grid(row=2, column=1, sticky=EW)
-        setCocDefaults_RadioButton = Radiobutton(self.drugFrame, text="Heroin",  \
-                            variable = self.drugList, value = 2, command= lambda: \
-                            self.setHeroinDefaults()).grid(row=3, column=1, sticky=EW)
-        setTestDefaults_RadioButton = Radiobutton(self.drugFrame, text="Test values", \
-                            variable = self.drugList, value = 3, command= lambda: \
-                            self.setTestDefaults()).grid(row=5, column=1, sticky=EW)
-        self.drugList.set(1)
-
-
+        drawModel_button = Button(self.buttonFrame, text="drawTestParams2()", command= lambda: \
+                self.drawTestParams2()).grid(column=0, row=4, sticky=W)
+    
           
         # ********** sliderFrame ********************
 
-        self.useSliders = Radiobutton(self.sliderFrame, text = "Use Sliders",
-                                variable = self.useDefaults, value = 0).grid(row = 0, column = 0, sticky = W)
+        drawModel_button = Button(self.sliderFrame, text="drawUsingSliders()", command= lambda: \
+                self.drawUsingSliders()).grid(row=0, column=0, sticky=W)
 
         #dv1
         dv1_Label = Label(self.sliderFrame, text = "dv1").grid(row=1,column=0,sticky=W)
-        self.scale_dv1 = Scale(self.sliderFrame, orient=HORIZONTAL, length=150, resolution = 0.000001, \
-                                 from_= 0.112000, to = 0.120000, variable = self.dv1)
+        self.scale_dv1 = Scale(self.sliderFrame, orient=HORIZONTAL, length=150, resolution = 0.1, \
+                                 from_= 0.05, to = 5.0, variable = self.dv1)
         self.scale_dv1.grid(row=1, column=1, columnspan = 3)
         self.scale_dv1.set(0.112)
+
 
         #dv2
         dv2_Label = Label(self.sliderFrame, text = "dv2").grid(row=2,column=0,sticky=W)
@@ -294,8 +301,8 @@ class myGUI(object):
 
         #k12
         k12_Label = Label(self.sliderFrame, text = "k12").grid(row=3,column=0,sticky=W)
-        self.scale_k12 = Scale(self.sliderFrame, orient=HORIZONTAL, length=150, resolution = 0.000001, \
-                                 from_= 0.10, to = 0.40, variable = self.k12)
+        self.scale_k12 = Scale(self.sliderFrame, orient=HORIZONTAL, length=150, resolution = 0.001, \
+                                 from_= 0.05, to = 0.25, variable = self.k12)
         self.scale_k12.grid(row=3,column=1, columnspan = 3)
         self.scale_k12.set(0.233)
 
@@ -487,6 +494,12 @@ class myGUI(object):
         kel_Value_label = Label(self.parameterFrame, text = "kel ="+str(self.kel)).grid(row=7,column=0,sticky=W)
         alpha_Value_label = Label(self.parameterFrame,text = "alpha ="+str(round(self.alpha,5))).grid(row=8,column=0,sticky=W)
         beta_Value_label = Label(self.parameterFrame, text = "beta ="+str(round(self.beta,5))).grid(row=9,column=0,sticky=W)
+        if True:                # Make conditional at some point
+            self.scale_dv1.set(self.dv1)
+            self.scale_dv2.set(self.dv2)
+            self.scale_k12.set(self.k12)
+            self.scale_k21.set(self.k21)
+            self.scale_kel.set(self.kel)    
 
     def eventRecord(self, aCanvas, x_zero, y_zero, x_pixel_width, max_x_scale, dataList, charList, aLabel, t_zero = 0):
         """
@@ -547,7 +560,7 @@ class myGUI(object):
         duration = 0            # LongWord
         dose = 0.0
 
-        lastBin = int((60/resolution) * 360) #  ie. 5 sec = (60/5)* 360 = 4320          # 6 hours    choices : 2160, 4320, 17280
+        lastBin = int((60/resolution) * 360)       # ie. 5 sec = (60/5)* 360 = 4320 bins for 6 hours session
         pumpOn = False
         pumpOnTime = 0    
 
@@ -615,7 +628,7 @@ class myGUI(object):
         print("testStuff3")
 
  
-    def drawModel(self):
+    def drawModel(self, aColor):
         """
         This compares the same dose over 3 different time periods 5,25 and 50 sec
         It does this by changing the concentration, but perhpas it would be
@@ -651,7 +664,7 @@ class myGUI(object):
         max_x_scale = 360    # could use elf.max_x_scale.get()
         max_y_scale = 20
         resolution = 60
-        aColor = "blue"      # could pass different colors -> drawModel(self,aRecord,aColor)
+        # aColor = "blue"      # could pass different colors -> drawModel(self,aRecord,aColor)
         if (max_x_scale == 10) or (max_x_scale == 30): x_divisions = 10
         self.eventRecord(aCanvas, x_zero+5, 185, x_pixel_width, max_x_scale, aRecord.datalist, ["P"], "")
         GraphLib.drawXaxis(aCanvas, x_zero, y_zero, x_pixel_width, max_x_scale, x_divisions)
@@ -697,11 +710,7 @@ class myGUI(object):
         """
 
 
-
-        
-
-
-    def setCocaineDefaults(self):
+    def drawCocDefault(self):
         self.dv1 = 0.112444
         self.dv2 = 0.044379
         self.k12 = 0.233
@@ -710,17 +719,12 @@ class myGUI(object):
         self.alpha = 0.5*((self.k12+self.k21+self.kel)+math.sqrt((self.k12+self.k21+self.kel)*\
                             (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)));
         self.beta = 0.5*((self.k12+self.k21+self.kel)-math.sqrt((self.k12+self.k21+self.kel)*\
-                            (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)));
-        
-        if True:                # Make conditional at some point
-            self.scale_dv1.set(self.dv1)
-            self.scale_dv2.set(self.dv2)
-            self.scale_k12.set(self.k12)
-            self.scale_k21.set(self.k21)
-            self.scale_kel.set(self.kel)        
+                            (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)));       
         self.updateParamLabels()
+        self.drawModel("red")
 
-    def setHeroinDefaults(self):
+
+    def drawTestParams1(self):
         self.dv1 = 0.112444
         self.dv2 = 0.044379
         self.k12 = 0.233
@@ -730,16 +734,10 @@ class myGUI(object):
                             (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)));
         self.beta = 0.5*((self.k12+self.k21+self.kel)-math.sqrt((self.k12+self.k21+self.kel)*\
                             (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)));
-        
-        if True:                # Make conditional at some point
-            self.scale_dv1.set(self.dv1)
-            self.scale_dv2.set(self.dv2)
-            self.scale_k12.set(self.k12)
-            self.scale_k21.set(self.k21)
-            self.scale_kel.set(self.kel)
         self.updateParamLabels()
+        self.drawModel("blue")
 
-    def setTestDefaults(self):
+    def drawTestParams2(self):
         self.dv1 = 0.112444
         self.dv2 = 0.044379
         self.k12 = 0.233
@@ -748,38 +746,24 @@ class myGUI(object):
         self.alpha = 0.5*((self.k12+self.k21+self.kel)+math.sqrt((self.k12+self.k21+self.kel)*\
                             (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)))
         self.beta = 0.5*((self.k12+self.k21+self.kel)-math.sqrt((self.k12+self.k21+self.kel)*\
-                            (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)))
-        
-        if True:                # Make conditional at some point
-            self.scale_dv1.set(self.dv1)
-            self.scale_dv2.set(self.dv2)
-            self.scale_k12.set(self.k12)
-            self.scale_k21.set(self.k21)
-            self.scale_kel.set(self.kel)
-            
+                            (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)))     
         self.updateParamLabels()
-    
+        self.drawModel("green")
 
-    def test(self):
-        print("Test button Pressed")
 
-        """
+    def drawUsingSliders(self):
+        self.dv1 = self.scale_dv1.get()
+        self.dv2 = self.scale_dv2.get()
+        self.k12 = self.scale_k12.get()
+        self.k21 = self.scale_k21.get()
+        self.kel = self.scale_kel.get()
+        self.alpha = 0.5*((self.k12+self.k21+self.kel)+math.sqrt((self.k12+self.k21+self.kel)*\
+                            (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)))
+        self.beta = 0.5*((self.k12+self.k21+self.kel)-math.sqrt((self.k12+self.k21+self.kel)*\
+                            (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)))
+        self.updateParamLabels()
+        self.drawModel("orange")
         
-        self.clearGraphTabCanvas()
-        x_zero = 50
-        y_zero = 550
-        x_pixel_width = 700                               
-        y_pixel_height = 500
-        max_x_scale = self.max_x_scale.get()
-        x_divisions = 12
-        if (max_x_scale == 10) or (max_x_scale == 30): x_divisions = 10
-        max_y_scale = self.max_y_scale.get()        
-        y_divisions = 10
-        GraphLib.drawXaxis(self.graphCanvas, x_zero, y_zero, x_pixel_width, max_x_scale, x_divisions, color = "red")
-        offset = 0      
-        GraphLib.drawYaxis(self.graphCanvas, x_zero, y_zero, y_pixel_height, max_y_scale, y_divisions, True, color = "blue")
-        GraphLib.drawYaxis(self.graphCanvas, x_zero+x_pixel_width +10, y_zero, y_pixel_height, max_y_scale, y_divisions, False)
-        """
 
     def clearText(self):
         self.textBox.delete("1.0",END)
