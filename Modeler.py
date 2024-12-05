@@ -5,8 +5,15 @@ Modeler.py started as a stripped down version of Analysis.py.
 
 
 
-To do: fix sliders
+To do:
+    Consolidate drawModel
+    change CocConc to drugConcentration etc.
+
+    Look at NIDA heroin numbers
+
     try adding stuff (alpha and beta) to canvas: aCanvas.create_text(300, 20, text="graphLibTest")
+
+    
 
 
 """
@@ -115,8 +122,21 @@ class myGUI(object):
                              self.fileName5,self.fileName6,self.fileName7,self.fileName8,self.fileName9]
 
         # Graphs Tab
-        self.max_x_scale = IntVar(value=360)
-        self.max_y_scale = IntVar(value=500)
+        self.max_x_scale = IntVar(value=360)  # Should eventually be coupled to a radiobutton selection
+        self.max_y_scale = IntVar(value=500)  # Should eventually be coupled to a radiobutton selection
+
+        # *******  Model parameters **********
+        # Global varaibles which could change. Initial placeholder values are cocaine defaults.
+        # These are variables that could change!
+        # Set desired values in setCocaineDefaults(), setHeroinDefaults() and setTestDefaults()
+
+        self.dv1 = 0.112444
+        self.dv2 = 0.044379
+        self.k12 = 0.233
+        self.k21 = 0.212
+        self.kel = 0.294
+        self.alpha = 0.641901
+        self.beta = 0.097099
         
 
         # ******************************************************************************
@@ -190,7 +210,7 @@ class myGUI(object):
         # ****** Create Frames *******
         """
         Screen is divided into a graphCanvasFrame on the right and the leftColumnFrame
-        The leftColumnFrame contains buttonFrame, drugFrame, sliderFrame and axesFrame
+        The leftColumnFrame contains buttonFrame, drugFrame, sliderFrame, parameterFrame and axesFrame
         """
           
         self.graphCanvasFrame = Frame(self.graphTab, borderwidth=2, relief="sunken")
@@ -200,27 +220,31 @@ class myGUI(object):
         self.graphCanvas.create_text(100,10,text = "Graph Canvas")
         
         self.leftColumnFrame = Frame(self.graphTab, borderwidth=2, relief="sunken")
-        self.leftColumnFrame.grid(column = 0, row = 0, sticky=N)
+        self.leftColumnFrame.grid(row = 0, column = 0, sticky=N)
+
+        self.parameterFrame = Frame(self.leftColumnFrame, borderwidth=2, relief="sunken")
+        self.parameterFrame.grid(row = 0, column = 0, sticky=W)
         
         self.buttonFrame = Frame(self.leftColumnFrame, borderwidth=2, relief="sunken")
-        self.buttonFrame.grid(column = 0, row = 0, sticky=N)
+        self.buttonFrame.grid(row = 0, column = 1, sticky=W)
 
         self.drugFrame = Frame(self.leftColumnFrame, borderwidth=2, relief="sunken")
-        self.drugFrame.grid(column = 0, row = 1)
+        self.drugFrame.grid(row = 1, column = 0, sticky=W)
 
         self.sliderFrame = Frame(self.leftColumnFrame, borderwidth=2, relief="sunken")
-        self.sliderFrame.grid(column = 0, row = 3)
+        self.sliderFrame.grid(row = 3, column = 0, sticky=W)
 
         self.axesFrame = Frame(self.leftColumnFrame, borderwidth=2, relief="sunken")
-        self.axesFrame.grid(column = 0, row = 4)
+        self.axesFrame.grid(column = 0, row = 5, sticky=W)
 
 
         # ********  Add widgets to specific Frames *******
 
         # ******** buttonFrame ******************
         
-        clearCanvasButton = Button(self.buttonFrame, text="Clear", command= lambda: \
-                            self.clearGraphCanvas()).grid(row=1,column=0,sticky=W)
+        clearCanvasButton = Button(self.buttonFrame, text="Clear Graph", command= lambda: \
+                            #self.clearGraphCanvas()).grid(row=1,column=0,sticky=W)
+                            self.clearGraphTabCanvas()).grid(row=1,column=0,sticky=W)
 
         drawModel_button = Button(self.buttonFrame, text="Draw Model", command= lambda: \
                 self.drawModel()).grid(column=0, row=2, sticky=W)
@@ -237,25 +261,22 @@ class myGUI(object):
         
         self.drugList = IntVar()
         setCocDefaults_RadioButton = Radiobutton(self.drugFrame, text="Cocaine", \
-                            variable = self.drugList, value = 1).grid(row=3, column=1, sticky=W)
+                            variable = self.drugList, value = 1, command= lambda: \
+                            self.setCocaineDefaults()).grid(row=2, column=1, sticky=EW)
         setCocDefaults_RadioButton = Radiobutton(self.drugFrame, text="Heroin",  \
-                            variable = self.drugList, value = 2).grid(row=4, column=1, sticky=W)
-        setTestDefaults_RadioButton = Radiobutton(self.drugFrame, text="Test values",   \
-                            variable = self.drugList, value = 3).grid(row=5, column=1, sticky=W)
+                            variable = self.drugList, value = 2, command= lambda: \
+                            self.setHeroinDefaults()).grid(row=3, column=1, sticky=EW)
+        setTestDefaults_RadioButton = Radiobutton(self.drugFrame, text="Test values", \
+                            variable = self.drugList, value = 3, command= lambda: \
+                            self.setTestDefaults()).grid(row=5, column=1, sticky=EW)
         self.drugList.set(1)
 
-        
+
+          
         # ********** sliderFrame ********************
 
         self.useSliders = Radiobutton(self.sliderFrame, text = "Use Sliders",
                                 variable = self.useDefaults, value = 0).grid(row = 0, column = 0, sticky = W)
-
-        self.dv1 = 0.112444
-        self.dv2 = 0.044379
-        self.k12 = 0.233
-        self.k21 = 0.212
-        self.kel = DoubleVar(value=0.294)
-
 
         #dv1
         dv1_Label = Label(self.sliderFrame, text = "dv1").grid(row=1,column=0,sticky=W)
@@ -266,45 +287,35 @@ class myGUI(object):
 
         #dv2
         dv2_Label = Label(self.sliderFrame, text = "dv2").grid(row=2,column=0,sticky=W)
-        self.scale_dv2 = Scale(self.sliderFrame, orient=HORIZONTAL, length=150, resolution = 0.001, \
+        self.scale_dv2 = Scale(self.sliderFrame, orient=HORIZONTAL, length=150, resolution = 0.000001, \
                                  from_= 0.01, to = 0.06, variable = self.dv2)
         self.scale_dv2.grid(row=2,column=1, columnspan = 3)
         self.scale_dv2.set(0.044)
 
         #k12
         k12_Label = Label(self.sliderFrame, text = "k12").grid(row=3,column=0,sticky=W)
-        self.scale_k12 = Scale(self.sliderFrame, orient=HORIZONTAL, length=150, resolution = 0.01, \
+        self.scale_k12 = Scale(self.sliderFrame, orient=HORIZONTAL, length=150, resolution = 0.000001, \
                                  from_= 0.10, to = 0.40, variable = self.k12)
         self.scale_k12.grid(row=3,column=1, columnspan = 3)
         self.scale_k12.set(0.233)
 
         #k21
         k21_Label = Label(self.sliderFrame, text = "k21").grid(row=4,column=0,sticky=W)
-        self.scale_k21 = Scale(self.sliderFrame, orient=HORIZONTAL, length=150, resolution = 0.01, \
+        self.scale_k21 = Scale(self.sliderFrame, orient=HORIZONTAL, length=150, resolution = 0.000001, \
                                  from_= 0.10, to = 0.4, variable = self.k21)
         self.scale_k21.grid(row=4,column=1, columnspan = 3)
         self.scale_k21.set(0.212)
-
             
         #kel
         kel_Label = Label(self.sliderFrame, text = "kel").grid(row=5,column=0,sticky=W)
-        self.scale_kel = Scale(self.sliderFrame, orient=HORIZONTAL, length=150, resolution = 0.01, \
+        self.scale_kel = Scale(self.sliderFrame, orient=HORIZONTAL, length=150, resolution = 0.000001, \
                                  from_= 0.20, to = 0.4, variable = self.kel)
         self.scale_kel.grid(row=5,column=1, columnspan = 3)
         self.scale_kel.set(0.294)
 
-        """
-        variables
-        dv1 = 0.112444;   # blood
-        dv2 = 0.044379;   # brain
-        k12 = 0.233;      # rate constant for transfer from blood to brain
-        k21 = 0.212;      # rate contant for transfer from brain to blood
-        kel = 0.294                    # check with ModelTab_Kel_UpDown.position/10 
-        alpha = 0.641901               # per min
-        beta = 0.097099                # per min
-        """
-        """
+        
 
+        """
 
         self.defaultsList = [self.fileName0,self.fileName1,self.fileName2,self.fileName3,self.fileName4,\
                              self.fileName5,self.fileName6,self.fileName7,self.fileName8,self.fileName9]
@@ -330,8 +341,12 @@ class myGUI(object):
         self.graphCanvas.create_text(100,10,text = "Graph Canvas")
 
         """
+
+        self.updateParamLabels()
         
     # ***************   End of __init__(self)  *************************
+
+    
    
     class DataRecord:
         def __init__(self, datalist, fileName):
@@ -420,13 +435,18 @@ class myGUI(object):
 
     # ************** End Record Class *********************************
 
+
+
+    
+    """
+
     def drawXaxis(aCanvas, x_zero, y_zero, x_pixel_width, max_x_scale, x_divisions, color = "black"):
-        """
-        Draws an X (horizontal) axis using the following parameters:
-        aCanvas:  Here the main canvas is self.graphCanvas, but a different canvas might be added,
-                  for example, in a new Tab.
-        x_zero, y_zero, x_pixel_width, max_x_scale, x_divisions
-        """
+]
+        # Draws an X (horizontal) axis using the following parameters:
+        # aCanvas:  Here the main canvas is self.graphCanvas, but a different canvas might be added,
+        #           for example, in a new Tab.
+        # x_zero, y_zero, x_pixel_width, max_x_scale, x_divisions
+
         aCanvas.create_line(x_zero, y_zero, x_zero + x_pixel_width, y_zero, fill=color)
         for divisions in range(x_divisions + 1):          
             x = x_zero + (divisions * (x_pixel_width // x_divisions))
@@ -434,14 +454,12 @@ class myGUI(object):
             aCanvas.create_text(x, y_zero + 20, text=str(int((max_x_scale/x_divisions)*divisions)), fill=color)
 
     def drawYaxis(aCanvas, x_zero, y_zero, y_pixel_height, max_y_scale, y_divisions, labelLeft, format_int = False, color = "black"):
-        """
-        Draws an Y (verticle) axis using the following parameters:
-        (aCanvas, x_zero, y_zero, y_pixel_height, max_y_scale, y_divisions,  labelLeft, color):
+        # Draws an Y (verticle) axis using the following parameters:
+        # (aCanvas, x_zero, y_zero, y_pixel_height, max_y_scale, y_divisions,  labelLeft, color):
 
-        labelLeft = True places labels and tick marks on the left of the axis
-        Adjust x_zero to move the axis left or right.
-            eg. x_zero = x_zero + x_pixel_width will push it all the way to the right edge. 
-        """
+        #labelLeft = True places labels and tick marks on the left of the axis
+        #Adjust x_zero to move the axis left or right.
+        #    eg. x_zero = x_zero + x_pixel_width will push it all the way to the right edge. 
         aCanvas.create_line(x_zero, y_zero, x_zero, y_zero-y_pixel_height, fill=color)
         for divisions in range(y_divisions+1):          
             y = y_zero - (divisions * (y_pixel_height // y_divisions))
@@ -455,7 +473,20 @@ class myGUI(object):
             # print("label", label)
             aCanvas.create_text(x_zero+(20*offsetDirection), y, fill = color, text=label)
 
+    """
 
+
+    def updateParamLabels(self):
+        """
+        Needs some explanation 
+        """        
+        dv1_Value_label = Label(self.parameterFrame, text = "dv1 ="+str(self.dv1)).grid(row=3,column=0,sticky=W)   
+        dv2_Value_label = Label(self.parameterFrame, text = "dv2 ="+str(self.dv2)).grid(row=4,column=0,sticky=W)
+        k12_Value_label = Label(self.parameterFrame, text = "k12 ="+str(self.k12)).grid(row=5,column=0,sticky=W)
+        k21_Value_label = Label(self.parameterFrame, text = "k21 ="+str(self.k21)).grid(row=6,column=0,sticky=W)
+        kel_Value_label = Label(self.parameterFrame, text = "kel ="+str(self.kel)).grid(row=7,column=0,sticky=W)
+        alpha_Value_label = Label(self.parameterFrame,text = "alpha ="+str(round(self.alpha,5))).grid(row=8,column=0,sticky=W)
+        beta_Value_label = Label(self.parameterFrame, text = "beta ="+str(round(self.beta,5))).grid(row=9,column=0,sticky=W)
 
     def eventRecord(self, aCanvas, x_zero, y_zero, x_pixel_width, max_x_scale, dataList, charList, aLabel, t_zero = 0):
         """
@@ -480,46 +511,35 @@ class myGUI(object):
                     aCanvas.create_line(newX, y, newX, newY)
                     y = newY                        
                 x = newX
-                # aCanvas.create_text(x, y_zero+10, fill="blue", text = pairs[1])  # show char underneath 
-
 
     def  calculateConcentration (self,D, T, resolution):
         """ dose, time, resolution >> concentration
             Returns the concentration of cocaine at time T given dose (D) at time zero.
-            kel = 0.294  - rate constant for elimination from blood by metabolism and excretion
-            Using the Pan equation for alpha as follows
+            Using the Pan equation for alpha and beta as follows:
             alpha := 0.5*((k12+k21+kel)+SQRT((k12+k21+kel)*(k12+k21+kel)-(4*k21*kel)));
             beta  := 0.5*((k12+k21+kel)-SQRT((k12+k21+kel)*(k12+k21+kel)-(4*k21*kel)));
-            results in the alpha used by Nicola and Deadwyler
-            alpha : real = 0.641901;   // per min
-            beta : real = 0.097099;    // per min
-            BTW Tsibulski and Norman (Brain Res Prot. 2005) say half life of cocaine is 480 sec.
-            resolution (in seconds) converted to fraction of a minute (i.e. 60/resolution)
+            results in alpha and beta used by Nicola and Deadwyler
+            alpha = 0.641901
+            beta = 0.097099
         """
-        
-        dv1 = 0.112444;   # blood
-        dv2 = 0.044379;   # brain
-        k12 = 0.233;      # rate constant for transfer from blood to brain
-        k21 = 0.212;      # rate contant for transfer from brain to blood
-        if (self.useDefaults.get() == 1):
-            kel = 0.294
-        else:
-            kel = self.scale_kel.get()  
-
-        # alpha = 0.641901               # default (per min)
-        # beta = 0.097099                # default value (per min)
-        alpha = 0.5*((k12+k21+kel)+math.sqrt((k12+k21+kel)*(k12+k21+kel)-(4*k21*kel)));
-        beta  = 0.5*((k12+k21+kel)-math.sqrt((k12+k21+kel)*(k12+k21+kel)-(4*k21*kel)));
+        # local variables take on global values
+        dv1 = self.dv1 
+        dv2 = self.dv2   
+        k12 = self.k12
+        k21 = self.k21
+        alpha = self.alpha
+        beta = self.beta
 
         concentration = ((D*k12)/(dv2*(alpha-beta)))*((math.exp(-beta*(T*(resolution/60)))-math.exp(-alpha*(T*(resolution/60)))));
 
         return concentration
 
-    def calculateCocConc (self,aList, cocConc, pumpSpeed, resolution, bodyWeight = 0.330):
+    def calculateCocConc(self,aList, cocConc, pumpSpeed, resolution, bodyWeight = 0.330):
         """ dataList, cocConc, pumpSpeed, respultion >> list of cocaine concentrations
             Returns timestamp pairs corresponding to every 5 sec bin of a 6 hr session (4320 bins)
             resolution in seconds
         """
+        
         # cocConc   Wake default = 5.0 mg/ml   
         # pumpSpeed Wake = 0.025 ml/mSec
         pumpSpeed = pumpSpeed/1000    # convert to ml/mSec
@@ -549,31 +569,99 @@ class myGUI(object):
                     if i < lastBin:
                         for t in range(lastBin-i):     # t would normally be every 5 sec
                             modelList[i+t][1] = modelList[i+t][1] + self.calculateConcentration(dose,t,resolution)
-
-        """
-        somehow print alpha and beta here
-        seems to be correct using default seetings
-        0.6419008994111437
-        0.09709910058885635
-        """
         return modelList
+    
+    def clearGraphTabCanvas(self):
+        self.graphCanvas.delete('all')
+        
 
-    def cocaineModel(self,aCanvas,aRecord,max_x_scale,resolution = 60, aColor = "blue", clear = True, max_y_scale = 20):
-        if clear:
-            aCanvas.delete('all')
+    def openFiles(self,filename):
+        """
+            This is stub for later use with first row buttons
+        """       
+        print(filename)
+ 
+
+        # **********************  The Controllers  ***********************************
+        # Controllers converts user input into calls to functions that manipulate data
+        # ****************************************************************************
+
+    def pyPlotEventRecord(self):
+        injNum = 0
+        injTimeList = []
+        
+        aRecord = self.recordList[self.fileChoice.get()]
+        for pairs in aRecord.datalist:
+            if pairs[1] == 'P':                     
+                injNum = injNum + 1
+                injTimeList.append(pairs[0]/60000)  # Min
+
+        plt.figure(figsize=(9,3))
+        plt.subplot(111)
+        plt.axis([-0.1,185,0.0,1.0])
+        plt.eventplot(injTimeList,lineoffsets = 0, linelengths=1.5)
+        plt.show()       
+
+    def clearFigure(self):
+        self.matPlotFigure.clf()
+        self.threshold_matPlot_Canvas.draw()
+
+    def testStuff2(self):
+        print("testStuff2")
+        aRecord = self.recordList[self.fileChoice.get()]
+        print(aRecord.datalist[0])
+
+    def testStuff3(self):
+        print("testStuff3")
+
+ 
+    def drawModel(self):
+        """
+        This compares the same dose over 3 different time periods 5,25 and 50 sec
+        It does this by changing the concentration, but perhpas it would be
+        better to change the pump speed.
+
+        eg. 5000 mSec * 4 mg/ml *0.000025 mls/mSec / 0.330 kg = 1.5 mg/kg
+        # model.calculateCocConc defaults to bodyweight 0.330 
+
+        """        
+        # testRecord1  5 sec infusion
+        testRecord1 = self.DataRecord([],"Test") 
+        testRecord1.datalist = [[600000, 'P'],[605000, 'p'],[1200000, 'P'],[1205000,'p'],[12000000, 'P'],[12005000,'p']]
+        testRecord1.pumpSpeed = 0.025   # Wake default 0.1 mls/4 sec = 0.025 / sec
+        testRecord1.cocConc = 4.0
+        testRecord1.extractStatsFromList()
+        duration = testRecord1.totalPumpDuration
+        dose = (testRecord1.totalPumpDuration * testRecord1.cocConc * (testRecord1.pumpSpeed/1000)/0.330)
+        print("testRecord1 Duration = {0}; Total Dose = {1:2.1f}".format(duration,dose))
+
+        # ************** later, need to pass aRecord -> drawModel(self,aRecord) *******
+        # but for now it just uses only the parameters in testRecord1 above
+        # *****************************************************************************
+
+        aCanvas = self.graphCanvas
+        aRecord = testRecord1
+        
         x_zero = 75
         y_zero = 350
         x_pixel_width = 500 #700
         y_pixel_height = 150 #200
         x_divisions = 12
         y_divisions = 4
+        max_x_scale = 360    # could use elf.max_x_scale.get()
+        max_y_scale = 20
+        resolution = 60
+        aColor = "blue"      # could pass different colors -> drawModel(self,aRecord,aColor)
         if (max_x_scale == 10) or (max_x_scale == 30): x_divisions = 10
         self.eventRecord(aCanvas, x_zero+5, 185, x_pixel_width, max_x_scale, aRecord.datalist, ["P"], "")
         GraphLib.drawXaxis(aCanvas, x_zero, y_zero, x_pixel_width, max_x_scale, x_divisions)
         GraphLib.drawYaxis(aCanvas, x_zero, y_zero, y_pixel_height, max_y_scale, y_divisions, True)
         x_scaler = x_pixel_width / (max_x_scale*60*1000)
         y_scaler = y_pixel_height / max_y_scale
+        
         cocConcXYList = self.calculateCocConc(aRecord.datalist,aRecord.cocConc,aRecord.pumpSpeed,resolution)
+
+        
         # print(cocConcXYList)
         x = x_zero
         y = y_zero
@@ -607,81 +695,76 @@ class myGUI(object):
         # tempStr = "Average Conc (10-180 min): "+str(averageConc)
         # aCanvas.create_text(500, Y, fill = "red", text = tempStr)
         """
-        if (self.useDefaults == 0):
-            print("Used kel value =", self.scale_kel.get())
+
+
+
+        
+
+
+    def setCocaineDefaults(self):
+        self.dv1 = 0.112444
+        self.dv2 = 0.044379
+        self.k12 = 0.233
+        self.k21 = 0.212
+        self.kel = 0.294
+        self.alpha = 0.5*((self.k12+self.k21+self.kel)+math.sqrt((self.k12+self.k21+self.kel)*\
+                            (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)));
+        self.beta = 0.5*((self.k12+self.k21+self.kel)-math.sqrt((self.k12+self.k21+self.kel)*\
+                            (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)));
+        
+        if True:                # Make conditional at some point
+            self.scale_dv1.set(self.dv1)
+            self.scale_dv2.set(self.dv2)
+            self.scale_k12.set(self.k12)
+            self.scale_k21.set(self.k21)
+            self.scale_kel.set(self.kel)        
+        self.updateParamLabels()
+
+    def setHeroinDefaults(self):
+        self.dv1 = 0.112444
+        self.dv2 = 0.044379
+        self.k12 = 0.233
+        self.k21 = 0.212
+        self.kel = 0.200
+        self.alpha = 0.5*((self.k12+self.k21+self.kel)+math.sqrt((self.k12+self.k21+self.kel)*\
+                            (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)));
+        self.beta = 0.5*((self.k12+self.k21+self.kel)-math.sqrt((self.k12+self.k21+self.kel)*\
+                            (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)));
+        
+        if True:                # Make conditional at some point
+            self.scale_dv1.set(self.dv1)
+            self.scale_dv2.set(self.dv2)
+            self.scale_k12.set(self.k12)
+            self.scale_k21.set(self.k21)
+            self.scale_kel.set(self.kel)
+        self.updateParamLabels()
+
+    def setTestDefaults(self):
+        self.dv1 = 0.112444
+        self.dv2 = 0.044379
+        self.k12 = 0.233
+        self.k21 = 0.212
+        self.kel = 0.400
+        self.alpha = 0.5*((self.k12+self.k21+self.kel)+math.sqrt((self.k12+self.k21+self.kel)*\
+                            (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)))
+        self.beta = 0.5*((self.k12+self.k21+self.kel)-math.sqrt((self.k12+self.k21+self.kel)*\
+                            (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)))
+        
+        if True:                # Make conditional at some point
+            self.scale_dv1.set(self.dv1)
+            self.scale_dv2.set(self.dv2)
+            self.scale_k12.set(self.k12)
+            self.scale_k21.set(self.k21)
+            self.scale_kel.set(self.kel)
+            
+        self.updateParamLabels()
     
-    def clearGraphTabCanvas(self):
-        self.graphCanvas.delete('all')
-        
-
-    def openFiles(self,filename):
-        """
-            This is stub for later use with first row buttons
-        """       
-        print(filename)
- 
-
-        # **********************  The Controllers  ***********************************
-        # Controllers converts user input into calls on functions that manipulate data
-        # ****************************************************************************
-
-    def pyPlotEventRecord(self):
-        injNum = 0
-        injTimeList = []
-        
-        aRecord = self.recordList[self.fileChoice.get()]
-        for pairs in aRecord.datalist:
-            if pairs[1] == 'P':                     
-                injNum = injNum + 1
-                injTimeList.append(pairs[0]/60000)  # Min
-
-        plt.figure(figsize=(9,3))
-        plt.subplot(111)
-        plt.axis([-0.1,185,0.0,1.0])
-        plt.eventplot(injTimeList,lineoffsets = 0, linelengths=1.5)
-        plt.show()       
-
-    def clearFigure(self):
-        self.matPlotFigure.clf()
-        self.threshold_matPlot_Canvas.draw()
-
-    def testStuff2(self):
-        print("testStuff2")
-        aRecord = self.recordList[self.fileChoice.get()]
-        print(aRecord.datalist[0])
-
-    def testStuff3(self):
-        print("testStuff3")
-
- 
-    def drawModel(self):
-        WakePumpTimes = [3.162,1.780,1.000,0.562,0.316,0.188,0.100,0.056,0.031,0.018,0.010,0.0056]
-        """
-        This compares the same dose over 3 different time periods 5,25 and 50 sec
-        It does this by changing the concentration, but perhpas it would be
-        better to change the pump speed.
-
-        eg. 5000 mSec * 4 mg/ml *0.000025 mls/mSec / 0.330 kg = 1.5 mg/kg
-        # model.calculateCocConc defaults to bodyweight 0.330 
-
-        """        
-        # testRecord1  5 sec infusion
-        testRecord1 = self.DataRecord([],"Test") 
-        testRecord1.datalist = [[600000, 'P'],[605000, 'p'],[1200000, 'P'],[1205000,'p'],[12000000, 'P'],[12005000,'p']]
-        testRecord1.pumpSpeed = 0.025   # Wake default 0.1 mls/4 sec = 0.025 / sec
-        testRecord1.cocConc = 4.0
-        # testRecord1.TH_PumpTimes = WakePumpTimes
-        testRecord1.extractStatsFromList()
-        duration = testRecord1.totalPumpDuration
-        dose = (testRecord1.totalPumpDuration * testRecord1.cocConc * (testRecord1.pumpSpeed/1000)/0.330)
-        print("testRecord1 Duration = {0}; Total Dose = {1:2.1f}".format(duration,dose))
-
-        aCanvas = self.graphCanvas
-        max_x_scale = self.max_x_scale.get()
-        self.cocaineModel(aCanvas, testRecord1, max_x_scale, clear = False)
-
 
     def test(self):
+        print("Test button Pressed")
+
+        """
+        
         self.clearGraphTabCanvas()
         x_zero = 50
         y_zero = 550
@@ -696,7 +779,7 @@ class myGUI(object):
         offset = 0      
         GraphLib.drawYaxis(self.graphCanvas, x_zero, y_zero, y_pixel_height, max_y_scale, y_divisions, True, color = "blue")
         GraphLib.drawYaxis(self.graphCanvas, x_zero+x_pixel_width +10, y_zero, y_pixel_height, max_y_scale, y_divisions, False)
-
+        """
 
     def clearText(self):
         self.textBox.delete("1.0",END)
