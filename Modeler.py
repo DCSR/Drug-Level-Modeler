@@ -20,18 +20,24 @@ Modeler.py started as a stripped down version of Analysis.py.
 
 
 
+Done: mostly cleaned up. Draw buttons seem functional and useful.
 
-To do:
-    Consolidate drawModel
-    change CocConc to drugConcentration etc.
+To Do:
 
-1. For now, use a minimum TestRecord1.
+Standardize dataRecord with one four second injection at 110000 as per Nicks file
+
+1 min 60,000
+2 min 120,000
+
+5 min 300,000
+30 min 1,800,000
+
+
+
    Should it include Drug ("cocaine"), drug concentration etc.
 
-   Draw using Pan et al. ("blue")
-   Draw using TestParams1 ("Green"
-   Draw using TestParams2 ("Red")
-   Draw using Sliders     ("Yellow")
+
+
 
    Prototype Draw using Pan et al. before organizing buttons etc
 
@@ -229,6 +235,14 @@ class myGUI(object):
                                    value = 9, command =lambda: self.selectList()).grid(column=4, row=3,padx=padding)
 
 
+        """
+        Don't know what this was. There is already a self.fileNameList
+        self.defaultsList = [self.fileName0,self.fileName1,self.fileName2,self.fileName3,self.fileName4,\
+                             self.fileName5,self.fileName6,self.fileName7,self.fileName8,self.fileName9]
+
+        """
+
+
         # *************************************************************
         # **************        Graph Tab     *************************
         # *************************************************************
@@ -324,8 +338,6 @@ class myGUI(object):
 
         """
 
-        self.defaultsList = [self.fileName0,self.fileName1,self.fileName2,self.fileName3,self.fileName4,\
-                             self.fileName5,self.fileName6,self.fileName7,self.fileName8,self.fileName9]
 
 
         # ******* Y axis frame *********
@@ -363,7 +375,7 @@ class myGUI(object):
             self.numberOfL2Responses = 0
             self.numberOfInfusions = 0
             self.totalPumpDuration = 0        
-            self.cocConc = 0.0
+            self.drugConc = 0.0
             self.pumpSpeed = 0.0
             self.averagePumpTime = 0.0
             self.TH_PumpTimes = []
@@ -547,17 +559,16 @@ class myGUI(object):
 
         return concentration
 
-    def calculateCocConc(self,aList, cocConc, pumpSpeed, resolution, bodyWeight = 0.330):
-        """ dataList, cocConc, pumpSpeed, respultion >> list of cocaine concentrations
+    def calculateDrugConc(self,aList, drugConc, pumpSpeed, resolution, bodyWeight = 0.330):
+        """ dataList, drugConc, pumpSpeed, respultion >> list of cocaine concentrations
             Returns timestamp pairs corresponding to every 5 sec bin of a 6 hr session (4320 bins)
             resolution in seconds
         """
         
-        # cocConc   Wake default = 5.0 mg/ml   
+        # drugConc   Wake cocaine default = 5.0 mg/ml   
         # pumpSpeed Wake = 0.025 ml/mSec
         pumpSpeed = pumpSpeed/1000    # convert to ml/mSec
-        # print("pumpSpeed = ",pumpSpeed)
-        duration = 0            # LongWord
+        duration = 0
         dose = 0.0
 
         lastBin = int((60/resolution) * 360)       # ie. 5 sec = (60/5)* 360 = 4320 bins for 6 hours session
@@ -565,6 +576,7 @@ class myGUI(object):
         pumpOnTime = 0    
 
         modelList = []
+        """"
         for i in range(lastBin+1):
             modelList.append([i*resolution*1000,0])
         for pairs in aList:
@@ -575,13 +587,27 @@ class myGUI(object):
                 if pumpOn:
                     pumpOn = False
                     duration = pairs[0]-pumpOnTime
-                    dose =  (duration * cocConc * pumpSpeed)/bodyWeight;
+                    dose =  (duration * drugConc * pumpSpeed)/bodyWeight;
                     # eg. 4000 mSec * 5 mg/ml *0.000025 mls/mSec / 0.330 kg = 1.5 mg/kg
                     i = int(pairs[0]/(resolution*1000)+1)  # calculate which bin
                     # print(i)
                     if i < lastBin:
                         for t in range(lastBin-i):     # t would normally be every 5 sec
                             modelList[i+t][1] = modelList[i+t][1] + self.calculateConcentration(dose,t,resolution)
+        """
+        for i in range(lastBin+1):
+            modelList.append([i*resolution*1000,0])
+        for pairs in aList:
+            duration = pairs[1]-pairs[0]
+            print("duration =", duration)
+            dose =  (duration * drugConc * pumpSpeed)/bodyWeight;    # eg. 4000 mSec * 5 mg/ml *0.000025 mls/mSec / 0.330 kg = 1.5 mg/kg
+            i = int(pairs[0]/(resolution*1000)+1)  # calculate which bin
+            # print(i)
+            if i < lastBin:
+                for t in range(lastBin-i):     # t would normally be every 5 sec
+                    modelList[i+t][1] = modelList[i+t][1] + self.calculateConcentration(dose,t,resolution)
+
+        print(modelList[30])
         return modelList
     
     def clearGraphTabCanvas(self):
@@ -605,9 +631,8 @@ class myGUI(object):
         
         aRecord = self.recordList[self.fileChoice.get()]
         for pairs in aRecord.datalist:
-            if pairs[1] == 'P':                     
-                injNum = injNum + 1
-                injTimeList.append(pairs[0]/60000)  # Min
+            injNum = injNum + 1
+            injTimeList.append(pairs[0]/60000)  # Min
 
         plt.figure(figsize=(9,3))
         plt.subplot(111)
@@ -635,17 +660,21 @@ class myGUI(object):
         better to change the pump speed.
 
         eg. 5000 mSec * 4 mg/ml *0.000025 mls/mSec / 0.330 kg = 1.5 mg/kg
-        # model.calculateCocConc defaults to bodyweight 0.330 
+        # model.calculateDrugConc defaults to bodyweight 0.330 
 
         """        
-        # testRecord1  5 sec infusion
-        testRecord1 = self.DataRecord([],"Test") 
-        testRecord1.datalist = [[600000, 'P'],[605000, 'p'],[1200000, 'P'],[1205000,'p'],[12000000, 'P'],[12005000,'p']]
+        # testRecord1  4 sec infusion
+        testRecord1 = self.DataRecord([],"TestRecord1")
+
+        
+        # testRecord1.datalist = [[600000, 'P'],[605000, 'p'],[1200000, 'P'],[1205000,'p'],[12000000, 'P'],[12005000,'p']]
+
+        testRecord1.datalist = [(110000,114000)]
         testRecord1.pumpSpeed = 0.025   # Wake default 0.1 mls/4 sec = 0.025 / sec
-        testRecord1.cocConc = 4.0
+        testRecord1.drugConc = 4.0
         testRecord1.extractStatsFromList()
         duration = testRecord1.totalPumpDuration
-        dose = (testRecord1.totalPumpDuration * testRecord1.cocConc * (testRecord1.pumpSpeed/1000)/0.330)
+        dose = (testRecord1.totalPumpDuration * testRecord1.drugConc * (testRecord1.pumpSpeed/1000)/0.330)
         print("testRecord1 Duration = {0}; Total Dose = {1:2.1f}".format(duration,dose))
 
         # ************** later, need to pass aRecord -> drawModel(self,aRecord) *******
@@ -654,6 +683,10 @@ class myGUI(object):
 
         aCanvas = self.graphCanvas
         aRecord = testRecord1
+        print(aRecord.datalist)
+        print(aRecord.drugConc)
+        print(aRecord.pumpSpeed)
+        
         
         x_zero = 75
         y_zero = 350
@@ -671,18 +704,19 @@ class myGUI(object):
         GraphLib.drawYaxis(aCanvas, x_zero, y_zero, y_pixel_height, max_y_scale, y_divisions, True)
         x_scaler = x_pixel_width / (max_x_scale*60*1000)
         y_scaler = y_pixel_height / max_y_scale
-        
-        cocConcXYList = self.calculateCocConc(aRecord.datalist,aRecord.cocConc,aRecord.pumpSpeed,resolution)
 
+        # calculateDrugConc(self,aList, drugConc, pumpSpeed, resolution, bodyWeight = 0.330):
         
-        # print(cocConcXYList)
+        drugConcXYList = self.calculateDrugConc(aRecord.datalist,aRecord.drugConc,aRecord.pumpSpeed,resolution)
+
+        # print(drugConcXYList)
         x = x_zero
         y = y_zero
         totalConc = 0
         totalRecords = 0
         startAverageTime = 10 * 60000    # 10 min
         endAverageTime = 180 * 60000     # 120 min
-        for pairs in cocConcXYList:
+        for pairs in drugConcXYList:
             if pairs[0] >= startAverageTime:
                 if pairs[0] < endAverageTime:
                     totalRecords = totalRecords + 1
@@ -695,9 +729,12 @@ class myGUI(object):
             x = newX
             y = newY
         aCanvas.create_text(300, 400, fill = "blue", text = aRecord.fileName)
+
         """
-        dose = 2.8*aRecord.cocConc * aRecord.pumpSpeed
-        tempStr = "Duration (2.8 sec) * Pump Speed ("+str(aRecord.pumpSpeed)+" ml/sec) * cocConc ("+str(aRecord.cocConc)+" mg/ml) = Unit Dose "+ str(round(dose,3))+" mg/inj"
+        # ************
+        
+        dose = 2.8*aRecord.drugConc * aRecord.pumpSpeed
+        tempStr = "Duration (2.8 sec) * Pump Speed ("+str(aRecord.pumpSpeed)+" ml/sec) * drugConc ("+str(aRecord.drugConc)+" mg/ml) = Unit Dose "+ str(round(dose,3))+" mg/inj"
         aCanvas.create_text(300, 450, fill = "blue", text = tempStr)
         averageConc = round((totalConc/totalRecords),3)
         # draw average line
