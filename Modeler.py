@@ -28,10 +28,13 @@ Done: mostly cleaned up. Draw buttons seem functional and useful.
 
 To Do:
 
-    Should it include Drug ("cocaine"), drug concentration etc - To do
+    Get Event record running
 
+    Add buttons to Text Box: Clear, Print Graph coordinates,
 
-    Try adding stuff (alpha and beta) to canvas: aCanvas.create_text(300, 20, text="graphLibTest")
+    Add axis scalers
+
+    Print parameters to text box?
 
 
 Conclusions: dv1 seems to be 100% irrelevant in these calculations!
@@ -185,12 +188,16 @@ class myGUI(object):
         # *********  Text Tab ********
         self.textButtonFrame = Frame(self.textTab, borderwidth=1)
         self.textButtonFrame.grid(column = 0, row = 0, sticky=N)
+        cleartextButton = Button(self.textButtonFrame, bg="white", font=('Helvetica', 12, 'bold'), text="Clear", command= lambda: \
+                              self.clearText()).grid(row=0,column=0,columnspan = 2, sticky=EW)
+        showRecordButton = Button(self.textButtonFrame, bg="white", font=('Helvetica', 12, 'bold'), text="Show aRecord", command= lambda: \
+                              self.print_aRecord()).grid(row=1,column=0,columnspan = 2, sticky=EW)
         self.textBox = Text(self.textTab, width=100, height=47)
         self.textBox.grid(column = 1, row = 0, rowspan = 2)
         
 
         # *************  Header Row ******************      
-        openFilesButton = Button(headerFrame, text="Open Files", command= lambda: \
+        openFilesButton = Button(headerFrame, text="Open File", command= lambda: \
                                self.openFiles("Open Selected Files")).grid(row=0,column=0, sticky=W)        
         spacer1Label = Label(headerFrame, text="               ").grid(row=0,column=1)
         clockTimeLabel = Label(headerFrame, textvariable = self.clockTimeStringVar).grid(row = 0, column=2)
@@ -232,23 +239,17 @@ class myGUI(object):
                                    value = 9, command =lambda: self.selectList()).grid(column=4, row=3,padx=padding)
 
 
-        """
-        Don't know what this was. There is already a self.fileNameList
-        self.defaultsList = [self.fileName0,self.fileName1,self.fileName2,self.fileName3,self.fileName4,\
-                             self.fileName5,self.fileName6,self.fileName7,self.fileName8,self.fileName9]
-
-        """
-
-
         # *************************************************************
         # **************        Graph Tab     *************************
         # *************************************************************
 
-        # ****** Create Frames *******
         """
         Screen is divided into a graphCanvasFrame on the right and the leftColumnFrame
         The leftColumnFrame contains buttonFrame, drugFrame, sliderFrame, parameterFrame and axesFrame
         """
+
+        # ****** Create Frames *******
+
           
         self.graphCanvasFrame = Frame(self.graphTab, borderwidth=2, relief="sunken")
         self.graphCanvasFrame.grid(column = 1, row = 0)
@@ -331,32 +332,19 @@ class myGUI(object):
         self.scale_kel.grid(row=5,column=1, columnspan = 3)
         self.scale_kel.set(0.294)
 
+
+        # ********* Axes Frames ***********
         
-
-        """
-
-
-
-        # ******* Y axis frame *********
-        self.graph_YaxisRadioButtonFrame = Frame(self.columnFrame, borderwidth=2, relief="sunken")
-        self.graph_YaxisRadioButtonFrame.grid(column = 0, row = 4)
-        y_axisButtonLabel = Label(self.graph_YaxisRadioButtonFrame, text = "Y axis").grid(row = 0, column=0)
-        y_scaleRadiobutton250 = Radiobutton(self.graph_YaxisRadioButtonFrame, text="250", variable=self.max_y_scale, value=250)
-        y_scaleRadiobutton250.grid(column = 0, row = 1)
-        y_scaleRadiobutton500 = Radiobutton(self.graph_YaxisRadioButtonFrame, text="500", variable=self.max_y_scale, value=500)
-        y_scaleRadiobutton500.grid(column = 0, row = 2)
-        y_scaleRadiobutton1000 = Radiobutton(self.graph_YaxisRadioButtonFrame, text="1000", variable=self.max_y_scale, value=1000)
-        y_scaleRadiobutton1000.grid(column = 0, row = 3)
-        y_scaleRadiobutton1500 = Radiobutton(self.graph_YaxisRadioButtonFrame, text="1500", variable=self.max_y_scale, value=1500)
-        y_scaleRadiobutton1500.grid(column = 0, row = 4)
-
-        self.graphCanvasFrame = Frame(self.graphTab, borderwidth=2, relief="sunken")
-        self.graphCanvasFrame.grid(column = 1, row = 0)
-        self.graphCanvas = Canvas(self.graphCanvasFrame, width = canvas_width, height = canvas_height)
-        self.graphCanvas.grid(row=0,column=0)
-        self.graphCanvas.create_text(100,10,text = "Graph Canvas")
-
-        """
+        y_axisButtonLabel = Label(self.axesFrame, text = "Y axis").grid(row = 0, column=0)
+        y_scaleRadiobutton10 = Radiobutton(self.axesFrame, text="10", variable=self.max_y_scale, value=10)
+        y_scaleRadiobutton10.grid(column = 0, row = 1)
+        y_scaleRadiobutton20 = Radiobutton(self.axesFrame, text="20", variable=self.max_y_scale, value=20)
+        y_scaleRadiobutton20.grid(column = 0, row = 2)
+        y_scaleRadiobutton30 = Radiobutton(self.axesFrame, text="30", variable=self.max_y_scale, value=30)
+        y_scaleRadiobutton30.grid(column = 0, row = 3)
+        y_scaleRadiobutton40 = Radiobutton(self.axesFrame, text="40", variable=self.max_y_scale, value=40)
+        y_scaleRadiobutton40.grid(column = 0, row = 4)
+        self.max_y_scale.set(20)
 
         self.updateParamLabels()
         self.defineTwoTestFiles()
@@ -432,48 +420,10 @@ class myGUI(object):
     # ************** End Record Class *********************************
 
 
-   
-    """
-
-    def drawXaxis(aCanvas, x_zero, y_zero, x_pixel_width, max_x_scale, x_divisions, color = "black"):
-]
-        # Draws an X (horizontal) axis using the following parameters:
-        # aCanvas:  Here the main canvas is self.graphCanvas, but a different canvas might be added,
-        #           for example, in a new Tab.
-        # x_zero, y_zero, x_pixel_width, max_x_scale, x_divisions
-
-        aCanvas.create_line(x_zero, y_zero, x_zero + x_pixel_width, y_zero, fill=color)
-        for divisions in range(x_divisions + 1):          
-            x = x_zero + (divisions * (x_pixel_width // x_divisions))
-            aCanvas.create_line(x, y_zero, x, y_zero + 5, fill=color)
-            aCanvas.create_text(x, y_zero + 20, text=str(int((max_x_scale/x_divisions)*divisions)), fill=color)
-
-    def drawYaxis(aCanvas, x_zero, y_zero, y_pixel_height, max_y_scale, y_divisions, labelLeft, format_int = False, color = "black"):
-        # Draws an Y (verticle) axis using the following parameters:
-        # (aCanvas, x_zero, y_zero, y_pixel_height, max_y_scale, y_divisions,  labelLeft, color):
-
-        #labelLeft = True places labels and tick marks on the left of the axis
-        #Adjust x_zero to move the axis left or right.
-        #    eg. x_zero = x_zero + x_pixel_width will push it all the way to the right edge. 
-        aCanvas.create_line(x_zero, y_zero, x_zero, y_zero-y_pixel_height, fill=color)
-        for divisions in range(y_divisions+1):          
-            y = y_zero - (divisions * (y_pixel_height // y_divisions))
-            if labelLeft: offsetDirection = -1   # create_text and hash marks on left side of the axis          
-            else: offsetDirection = 1            # create_text and hash marks on right side of the axis
-            aCanvas.create_line(x_zero, y, x_zero+(5*offsetDirection), y, fill=color)
-            if format_int:
-                label = "{:.0f}".format((max_y_scale / y_divisions)*divisions)
-            else:     # format with one significant 
-                label = "{:.1f}".format((max_y_scale / y_divisions)*divisions)
-            # print("label", label)
-            aCanvas.create_text(x_zero+(20*offsetDirection), y, fill = color, text=label)
-
-    """
-
-
     def updateParamLabels(self):
         """
-        Needs some explanation 
+        One would think that the Label text could be refreshed or changed, but. So here the various labels
+        are recreated each time with new values in the label. 
         """        
         dv1_Value_label = Label(self.parameterFrame, text = "dv1 ="+str(self.dv1)).grid(row=3,column=0,sticky=W)   
         dv2_Value_label = Label(self.parameterFrame, text = "dv2 ="+str(self.dv2)).grid(row=4,column=0,sticky=W)
@@ -490,9 +440,11 @@ class myGUI(object):
             self.scale_kel.set(self.kel)
 
     def defineTwoTestFiles(self):
+        """
         # Ten DataRecords have previously been instantiate as empty
-        
-        # testRecord1 has one 4 sec infusion
+        Here as a temporary measure, relevant data included in two dataRecords.
+        At some point, the "Open File" button will be used to fill dataRecords.
+        """
         name = "TestRecord1"
         self.recordList[0].datalist = [(110000,114000)]
         self.recordList[0].fileName = name      
@@ -501,44 +453,36 @@ class myGUI(object):
         #testRecord1.drug = "cocaine"
         self.fileNameList[0].set(name)
         
-        print(self.recordList[0])
-        self.textBox.insert(tk.END, "TestRecord1"+"\n")
+        self.textBox.insert(tk.END, self.recordList[0])
+        self.textBox.insert(tk.END, "\n")
 
         name = "TestRecord2"
-        self.recordList[1].datalist = [(110000,114000), (600000,604000), (1800000, 1804000)]
+        self.recordList[1].datalist = \
+                [(110000,114000), (138130,142130), (1821940, 1825940), (1866880, 1874880), (1876310, 1880310), \
+                 (1886690,1890690), (3874940,3878940), (5411500,5415500), (5459060,5463060), (7234810,7238810), \
+                 (7250500,7254500), (7351500,7355500), (7362810, 7366810), (7372940, 7376940), (9083060, 9087060), \
+                 (9185690,9189690)]
         self.recordList[1].fileName = name      
         self.recordList[1].pumpSpeed = 0.025   # Wake default 0.1 mls/4 sec = 0.025 / sec
         self.recordList[1].drugConc = 4.0
         #testRecord1.drug = "cocaine"
         self.fileNameList[1].set(name)
+        self.textBox.insert(tk.END, self.recordList[1])
+        self.textBox.insert(tk.END, "\n")    
 
-        self.textBox.insert(tk.END, "TestRecord2"+"\n")
-        print(self.recordList[1])
-        
-
-    def eventRecord(self, aCanvas, x_zero, y_zero, x_pixel_width, max_x_scale, dataList, charList, aLabel, t_zero = 0):
+    def eventRecord(self, aCanvas, x_zero, y_zero, x_pixel_width, max_x_scale, dataList, aLabel):
         """
-        t_zero is the millis() at start time. Most timestamps are saved as session time, but error timetsamps
-        are saved as raw millis() and therefore need to have session start time subtracted
+        Plots every instance of a timestamp pair in the datalist 
         """
         x = x_zero
         y = y_zero
         x_scaler = x_pixel_width / (max_x_scale*60*1000)
         aCanvas.create_text(x_zero-30, y_zero-5, fill="blue", text = aLabel) 
         for pairs in dataList:
-            if pairs[1] in charList:
-                newX = (x_zero + ((pairs[0]-t_zero) * x_scaler) // 1)
-                aCanvas.create_line(x, y, newX, y)
-                if (len(charList) == 1):           #eg. charList = ["P"]
-                    aCanvas.create_line(newX, y, newX, y-10)
-                else:                              #eg. charlist = ["B","b"]
-                    if pairs[1] == charList[0]:
-                        newY = y_zero -10
-                    else:
-                        newY = y_zero                
-                    aCanvas.create_line(newX, y, newX, newY)
-                    y = newY                        
-                x = newX
+            newX = (x_zero + ((pairs[0]) * x_scaler) // 1)
+            aCanvas.create_line(x, y, newX, y)
+            aCanvas.create_line(newX, y, newX, y-10)
+            x = newX
 
     def  calculateConcentration (self,D, T, resolution):
         """ dose, time, resolution >> concentration
@@ -658,12 +602,7 @@ class myGUI(object):
  
     def drawModel(self, aColor):
         """
-        This compares the same dose over 3 different time periods 5,25 and 50 sec
-        It does this by changing the concentration, but perhpas it would be
-        better to change the pump speed.
-
-        eg. 5000 mSec * 4 mg/ml *0.000025 mls/mSec / 0.330 kg = 1.5 mg/kg
-        # model.calculateDrugConc defaults to bodyweight 0.330 
+        This procedure plots the drug levels that correspond to the selected datarecord shown on the top row.
 
         """        
 
@@ -690,7 +629,7 @@ class myGUI(object):
         resolution = 60
         # aColor = "blue"      # could pass different colors -> drawModel(self,aRecord,aColor)
         if (max_x_scale == 10) or (max_x_scale == 30): x_divisions = 10
-        self.eventRecord(aCanvas, x_zero+5, 185, x_pixel_width, max_x_scale, aRecord.datalist, ["P"], "")
+        self.eventRecord(aCanvas, x_zero+5, 185, x_pixel_width, max_x_scale, aRecord.datalist, "")
         GraphLib.drawXaxis(aCanvas, x_zero, y_zero, x_pixel_width, max_x_scale, x_divisions)
         GraphLib.drawYaxis(aCanvas, x_zero, y_zero, y_pixel_height, max_y_scale, y_divisions, True)
         x_scaler = x_pixel_width / (max_x_scale*60*1000)
@@ -700,7 +639,6 @@ class myGUI(object):
         
         drugConcXYList = self.calculateDrugConc(aRecord.datalist,aRecord.drugConc,aRecord.pumpSpeed,resolution)
 
-        # print(drugConcXYList)
         # self.textBox.insert(tk.END, drugConcXYList)
         
         x = x_zero
@@ -777,11 +715,14 @@ class myGUI(object):
                             (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)))
         self.updateParamLabels()
         self.drawModel("orange")
-        
 
+    def print_aRecord(self):
+        selected = self.fileChoice.get()
+        self.textBox.insert(tk.END, self.recordList[selected])
+        self.textBox.insert(tk.END, "\n")
+        
     def clearText(self):
         self.textBox.delete("1.0",END)
-
 
     def periodic_check(self):
         thisTime = datetime.now()
