@@ -363,6 +363,7 @@ class myGUI(object):
             self.drug = "Cocaine"
             self.drugConc = 0.0
             self.pumpSpeed = 0.0
+            self.bodyWeight = 0.330
             self.deltaList = []
 
         def __str__(self):
@@ -387,6 +388,8 @@ class myGUI(object):
 
         def extractStatsFromList(self):
             """
+            This procedure would only work on a Wake datafile. It needs to be adapted
+             
             self.numberOfL1Responses = 0
             self.numberOfL2Responses = 0
             self.numberOfInfusions = 0
@@ -482,80 +485,7 @@ class myGUI(object):
             newX = (x_zero + ((pairs[0]) * x_scaler) // 1)
             aCanvas.create_line(x, y, newX, y)
             aCanvas.create_line(newX, y, newX, y-10)
-            x = newX
-
-    def  calculateConcentration (self,D, T, resolution):
-        """ dose, time, resolution >> concentration
-            Returns the concentration of cocaine at time T given dose (D) at time zero.
-            Using the Pan equation for alpha and beta as follows:
-            alpha := 0.5*((k12+k21+kel)+SQRT((k12+k21+kel)*(k12+k21+kel)-(4*k21*kel)));
-            beta  := 0.5*((k12+k21+kel)-SQRT((k12+k21+kel)*(k12+k21+kel)-(4*k21*kel)));
-            results in alpha and beta used by Nicola and Deadwyler
-            alpha = 0.641901
-            beta = 0.097099
-        """
-        # local variables take on global values
-        dv1 = self.dv1 
-        dv2 = self.dv2   
-        k12 = self.k12
-        k21 = self.k21
-        alpha = self.alpha
-        beta = self.beta
-
-        concentration = ((D*k12)/(dv2*(alpha-beta)))*((math.exp(-beta*(T*(resolution/60)))-math.exp(-alpha*(T*(resolution/60)))));
-
-        return concentration
-
-    def calculateDrugConc(self,aList, drugConc, pumpSpeed, resolution, bodyWeight = 0.330):
-        """ dataList, drugConc, pumpSpeed, respultion >> list of cocaine concentrations
-            Returns timestamp pairs corresponding to every 5 sec bin of a 6 hr session (4320 bins)
-            resolution in seconds
-        """
-        
-        # drugConc   Wake cocaine default = 5.0 mg/ml   
-        # pumpSpeed Wake = 0.025 ml/mSec
-        pumpSpeed = pumpSpeed/1000    # convert to ml/mSec
-        duration = 0
-        dose = 0.0
-
-        lastBin = int((60/resolution) * 360)       # ie. 5 sec = (60/5)* 360 = 4320 bins for 6 hours session
-        pumpOn = False
-        pumpOnTime = 0    
-
-        modelList = []
-        """"
-        for i in range(lastBin+1):
-            modelList.append([i*resolution*1000,0])
-        for pairs in aList:
-            if pairs[1] == "P":
-                pumpOn = True
-                pumpOnTime = pairs[0]
-            elif pairs[1] == "p":
-                if pumpOn:
-                    pumpOn = False
-                    duration = pairs[0]-pumpOnTime
-                    dose =  (duration * drugConc * pumpSpeed)/bodyWeight;
-                    # eg. 4000 mSec * 5 mg/ml *0.000025 mls/mSec / 0.330 kg = 1.5 mg/kg
-                    i = int(pairs[0]/(resolution*1000)+1)  # calculate which bin
-                    # print(i)
-                    if i < lastBin:
-                        for t in range(lastBin-i):     # t would normally be every 5 sec
-                            modelList[i+t][1] = modelList[i+t][1] + self.calculateConcentration(dose,t,resolution)
-        """
-        for i in range(lastBin+1):
-            modelList.append([i*resolution*1000,0])
-        for pairs in aList:
-            duration = pairs[1]-pairs[0]
-            print("duration =", duration)
-            dose =  (duration * drugConc * pumpSpeed)/bodyWeight;    # eg. 4000 mSec * 5 mg/ml *0.000025 mls/mSec / 0.330 kg = 1.5 mg/kg
-            i = int(pairs[0]/(resolution*1000)+1)  # calculate which bin
-            # print(i)
-            if i < lastBin:
-                for t in range(lastBin-i):     # t would normally be every 5 sec
-                    modelList[i+t][1] = modelList[i+t][1] + self.calculateConcentration(dose,t,resolution)
-
-        print(modelList[30])
-        return modelList
+            x = newX  
     
     def clearGraphTabCanvas(self):
         self.graphCanvas.delete('all')
@@ -572,6 +502,7 @@ class myGUI(object):
         # Controllers converts user input into calls to functions that manipulate data
         # ****************************************************************************
 
+    """
     def pyPlotEventRecord(self):
         injNum = 0
         injTimeList = []
@@ -585,7 +516,8 @@ class myGUI(object):
         plt.subplot(111)
         plt.axis([-0.1,185,0.0,1.0])
         plt.eventplot(injTimeList,lineoffsets = 0, linelengths=1.5)
-        plt.show()       
+        plt.show()
+    """
 
     def clearFigure(self):
         self.matPlotFigure.clf()
@@ -598,36 +530,69 @@ class myGUI(object):
 
     def testStuff3(self):
         print("testStuff3")
-
  
-    def drawModel(self, aColor):
+    def drawModel(self, aColor = "black"):
         """
-        This procedure plots the drug levels that correspond to the selected datarecord shown on the top row.
-
+        This procedure plots the drug levels that correspond to the selected datarecord shown on the top row
+        using a color defined in calling function
         """        
 
-        aRecord = self.recordList[self.fileChoice.get()]
-        print(aRecord.datalist)
+        # ***********  Choosing the data  ****************
+
+        aRecord = self.recordList[self.fileChoice.get()]    # Get the selected record
+        print(aRecord.datalist)                             # Make sure its the right record.
         print(aRecord.drugConc)
         print(aRecord.pumpSpeed)
         print(aRecord.fileName)
+        print(aRecord.bodyWeight)
 
 
-        # ************** later, need to pass aRecord -> drawModel(self,aRecord) *******
-        # but for now it just uses only the parameters in testRecord1 above
-        # *****************************************************************************
+        # *********** Derive the drug concentration from the datafile with pump times ********
+ 
+        resolution = 5                             # in seconds
+        
+        pumpSpeed = aRecord.pumpSpeed/1000         # convert to ml/mSec
+        drugConc = aRecord.drugConc
+        duration = 0
+        dose = 0.0
+        lastBin = int((60/resolution) * 360)       # ie. 5 sec = (60/5)* 360 = 4320 bins for 6 hours session
+        bodyWeight = aRecord.bodyWeight
 
-        aCanvas = self.graphCanvas        
+        dv1 = self.dv1                             # local variables take on global values
+        dv2 = self.dv2   
+        k12 = self.k12
+        k21 = self.k21
+        alpha = self.alpha
+        beta = self.beta
+        
+        modelList = []                                # create an empty List of drug concentrations
+        for i in range(lastBin+1):
+            modelList.append([i*resolution*1000,0])   # Extend the list in time with drug concentration = 0
+            
+        print("Model List length =", len(modelList))  # check that len = sessionlength (min) / resolution
+        
+        for pairs in aRecord.datalist:
+            duration = pairs[1]-pairs[0]
+            dose =  (duration * drugConc * pumpSpeed)/bodyWeight;    # eg. 4000 mSec * 5 mg/ml *0.000025 mls/mSec / 0.330 kg = 1.5 mg/kg
+            i = int(pairs[0]/(resolution*1000)+1)                    # calculate which bin
+            if i < lastBin:
+                for t in range(lastBin-i):
+                    concentration = ((dose*k12)/(dv2*(alpha-beta)))*((math.exp(-beta*(t*(resolution/60)))- \
+                                                                      math.exp(-alpha*(t*(resolution/60)))));
+                    modelList[i+t][1] = modelList[i+t][1] + concentration
+
+        # **************** Set up Graph ***************
+
+        aCanvas = self.graphCanvas                      
         x_zero = 75
         y_zero = 350
-        x_pixel_width = 500 #700
-        y_pixel_height = 150 #200
+        x_pixel_width = 500  # or eg. 700
+        y_pixel_height = 150 # or eg. 200
         x_divisions = 12
         y_divisions = 4
-        max_x_scale = 360    # could use elf.max_x_scale.get()
+        max_x_scale = 360    # could use self.max_x_scale.get()
         max_y_scale = 20
-        resolution = 60
-        # aColor = "blue"      # could pass different colors -> drawModel(self,aRecord,aColor)
+
         if (max_x_scale == 10) or (max_x_scale == 30): x_divisions = 10
         self.eventRecord(aCanvas, x_zero+5, 185, x_pixel_width, max_x_scale, aRecord.datalist, "")
         GraphLib.drawXaxis(aCanvas, x_zero, y_zero, x_pixel_width, max_x_scale, x_divisions)
@@ -635,32 +600,22 @@ class myGUI(object):
         x_scaler = x_pixel_width / (max_x_scale*60*1000)
         y_scaler = y_pixel_height / max_y_scale
 
-        # calculateDrugConc(self,aList, drugConc, pumpSpeed, resolution, bodyWeight = 0.330):
-        
-        drugConcXYList = self.calculateDrugConc(aRecord.datalist,aRecord.drugConc,aRecord.pumpSpeed,resolution)
+        # ******** Convert drug concentation data into XY coordinates **********
 
-        # self.textBox.insert(tk.END, drugConcXYList)
-        
         x = x_zero
         y = y_zero
         totalConc = 0
         totalRecords = 0
-        startAverageTime = 10 * 60000    # 10 min
-        endAverageTime = 180 * 60000     # 120 min
-        for pairs in drugConcXYList:
-            if pairs[0] >= startAverageTime:
-                if pairs[0] < endAverageTime:
-                    totalRecords = totalRecords + 1
-                    totalConc = totalConc + pairs[1]
+
+        for pairs in modelList:      
             concentration = round(pairs[1],2)
             newX = x_zero + pairs[0] * x_scaler // 1
             newY = y_zero - concentration * y_scaler // 1
             aCanvas.create_line(x, y, newX, newY, fill= aColor)
-            # aCanvas.create_oval(newX-2, newY-2, newX+2, newY+2, fill=aColor)
             x = newX
             y = newY
+            
         aCanvas.create_text(300, 400, fill = "blue", text = aRecord.fileName)
-
 
     def drawCocDefault(self):
         self.dv1 = 0.112444
@@ -673,7 +628,7 @@ class myGUI(object):
         self.beta = 0.5*((self.k12+self.k21+self.kel)-math.sqrt((self.k12+self.k21+self.kel)*\
                             (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)));       
         self.updateParamLabels()
-        self.drawModel("red")
+        self.drawModel(aColor="red")
 
 
     def drawTestParams1(self):
@@ -687,7 +642,7 @@ class myGUI(object):
         self.beta = 0.5*((self.k12+self.k21+self.kel)-math.sqrt((self.k12+self.k21+self.kel)*\
                             (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)));
         self.updateParamLabels()
-        self.drawModel("blue")
+        self.drawModel()
 
     def drawTestParams2(self):
         self.dv1 = 0.112444
@@ -700,7 +655,7 @@ class myGUI(object):
         self.beta = 0.5*((self.k12+self.k21+self.kel)-math.sqrt((self.k12+self.k21+self.kel)*\
                             (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)))     
         self.updateParamLabels()
-        self.drawModel("green")
+        self.drawModel(aColor="green")
 
 
     def drawUsingSliders(self):
@@ -714,7 +669,7 @@ class myGUI(object):
         self.beta = 0.5*((self.k12+self.k21+self.kel)-math.sqrt((self.k12+self.k21+self.kel)*\
                             (self.k12+self.k21+self.kel)-(4*self.k21*self.kel)))
         self.updateParamLabels()
-        self.drawModel("orange")
+        self.drawModel(aColor="orange")
 
     def print_aRecord(self):
         selected = self.fileChoice.get()
@@ -723,6 +678,13 @@ class myGUI(object):
         
     def clearText(self):
         self.textBox.delete("1.0",END)
+
+    def selectList(self):
+        """
+        Dummy function associated with radiobuttons that selects the filename textvariable.
+        """
+        # print("fileChoice: ", self.fileChoice.get())
+        pass
 
     def periodic_check(self):
         thisTime = datetime.now()
